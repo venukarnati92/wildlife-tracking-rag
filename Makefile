@@ -1,4 +1,4 @@
-.PHONY: install download pipeline index bootstrap app dashboard db-init sample-data generate compose-up compose-down clean
+.PHONY: install download pipeline index bootstrap app dashboard db-init sample-data generate compose-up compose-down compose-generate clean
 
 install:
 	uv sync
@@ -38,6 +38,10 @@ compose-up:
 
 compose-down:
 	docker compose down -v
+
+# Seed the dashboard with sample conversations, run inside the `app` container
+compose-generate:
+	docker compose run --rm app uv run python generate_data.py
 
 clean:
 	rm -rf data/index data/raw data/movebank_pipeline.duckdb data/movebank_studies.json

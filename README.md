@@ -1,6 +1,6 @@
 # Wildlife Tracking RAG
 
-**LLM Zoomcamp final project** — a retrieval-augmented generation (RAG) assistant that answers questions about wildlife tracking studies (species, locations, sensors, investigators, time periods, citations) grounded in **[Movebank](https://www.movebank.org)** study metadata.
+Retrieval-augmented generation (RAG) assistant that answers questions about wildlife tracking studies (species, locations, sensors, investigators, time periods, citations) grounded in **[Movebank](https://www.movebank.org)** study metadata.
 
 Ask things like:
 
@@ -25,7 +25,6 @@ The assistant retrieves relevant Movebank studies from an indexed knowledge base
 - [Retrieval strategies](#retrieval-strategies)
 - [Evaluation](#evaluation)
 - [Monitoring dashboard](#monitoring-dashboard)
-- [Evaluation criteria checklist](#evaluation-criteria-checklist)
 - [Repo layout](#repo-layout)
 
 ---
@@ -74,8 +73,6 @@ Movebank CSV ── scripts/download_movebank.py ─┐
                                           app.py (chat)         dashboard.py (7 charts)
 ```
 
-Every module mirrors the LLM Zoomcamp course flow (RAGBase → RAGWithMetrics → Streamlit + Postgres feedback → dashboard).
-
 ---
 
 ## Quick start (Docker Compose)
@@ -85,14 +82,35 @@ Everything (Postgres, Streamlit app, monitoring dashboard) comes up with one com
 ```bash
 cp .env.example .env
 # edit .env and set OPENAI_API_KEY (or point OPENAI_BASE_URL at Ollama / another gateway)
-
-# Bootstrap the knowledge base BEFORE bringing compose up:
-uv sync
-uv run python -c "import shutil; shutil.copy('data/movebank_studies.sample.json','data/movebank_studies.json')"
-uv run python ingest.py
-
-docker compose up --build
 ```
+
+**Optional: Movebank credentials (live data).** Sign up for a free account at [movebank.org](https://www.movebank.org/cms/movebank-registration) and add your credentials to `.env`:
+
+```bash
+MOVEBANK_USERNAME=your_email
+MOVEBANK_PASSWORD=your_password
+```
+
+This is **not required** — if you skip it, the ingestion step below automatically falls back to the bundled sample dataset (curated studies in `data/movebank_studies.sample.json`), and everything still works out of the box.
+
+Bootstrap the knowledge base, then bring everything up:
+
+```bash
+make install    # uv sync
+make bootstrap  # sample data -> builds search + vector indexes (works without Movebank credentials)
+
+# OR, for live Movebank data instead of the sample (needs the credentials above):
+# make download pipeline index
+
+make compose-up  # docker compose up --build
+```
+
+**Why two separate steps?** Data ingestion (fetching studies, building the text/vector search index) and running the app are intentionally decoupled:
+
+- **`make install` + `make bootstrap`** (or `make download pipeline index`) run **on your host**, outside Docker. They fetch/prepare Movebank study data and build the three search-index artifacts under `data/index/` (`wildlife_documents.json`, `wildlife_index.pkl`, `wildlife_embeddings.npy`). This is a one-time (or on-demand) data step — you only need to re-run it when you want to refresh the corpus.
+- **`make compose-up`** only builds and starts the containers (Postgres, `db-init`, `app`, `dashboard`). It does **not** build the index itself — the `app`/`dashboard` containers mount your host's `./data` folder directly (`volumes: - ./data:/app/data` in `docker-compose.yaml`), so they simply *read* whatever index files already exist on the host. If you skip the bootstrap step, `data/index/` won't exist and the app will fail on first use with a `FileNotFoundError`.
+
+This split means you can rebuild/restart the containers as often as you like (e.g. to pick up code changes) without ever re-running the (slower) embedding step, and conversely refresh the corpus without needing to rebuild any Docker image.
 
 Then open:
 
@@ -102,13 +120,13 @@ Then open:
 To seed the dashboard with sample conversations (~15 real RAG calls across all strategies):
 
 ```bash
-docker compose run --rm app uv run python generate_data.py
+make compose-generate  # docker compose run --rm app uv run python generate_data.py
 ```
 
 Tear down:
 
 ```bash
-docker compose down -v
+make compose-down  # docker compose down -v
 ```
 
 ---
@@ -192,7 +210,7 @@ Implemented in [`search.py`](search.py) and selectable at runtime via the app si
 | `hybrid_rerank`         | RRF, then cross-encoder rerank with `ms-marco-MiniLM-L-6-v2`                 |
 | `hybrid_rerank_rewrite` | Add an LLM query-rewrite step (e.g. common name → scientific name)           |
 
-The RAG production path defaults to `hybrid_rerank_rewrite`.
+`create_assistant()` (used by the CLI and the `RAG_STRATEGY` env var) defaults to `hybrid_rerank_rewrite` — the highest-accuracy option per the [retrieval evaluation](#evaluation) below. The Streamlit app's sidebar dropdown defaults to the lighter-weight `hybrid` instead (no rerank/rewrite, so no cross-encoder model to load and no extra LLM call), and lets you switch to `hybrid_rerank_rewrite` ("best") at any time.
 
 ---
 
@@ -255,25 +273,6 @@ To seed it quickly with real data:
 ```bash
 uv run python generate_data.py
 ```
-
----
-
-## Evaluation criteria checklist
-
-| Criterion              | Points | Where it lives                                                                                       |
-| ---                    | ---    | ---                                                                                                  |
-| Problem description    | 2      | This README, [Problem statement](#problem-statement)                                                 |
-| Retrieval flow         | 2      | KB in [`ingest.py`](ingest.py) + LLM in [`rag_helper.py`](rag_helper.py) / [`metrics.py`](metrics.py) |
-| Retrieval evaluation   | 2      | [`scripts/eval_retrieval.py`](scripts/eval_retrieval.py), 4 strategies compared, best selected       |
-| LLM evaluation         | 2      | [`notebooks/03-llm-eval.ipynb`](notebooks/03-llm-eval.ipynb) — 2 prompt variants                     |
-| Interface              | 2      | Streamlit UI [`app.py`](app.py)                                                                      |
-| Ingestion pipeline     | 2      | Automated with **dlt** in [`pipelines/movebank_pipeline.py`](pipelines/movebank_pipeline.py)         |
-| Monitoring             | 2      | Postgres feedback + [`dashboard.py`](dashboard.py) with 7 charts                                     |
-| Containerization       | 2      | Everything in [`docker-compose.yaml`](docker-compose.yaml) (postgres + db-init + app + dashboard)    |
-| Reproducibility        | 2      | Pinned deps in [`pyproject.toml`](pyproject.toml), `make bootstrap`, bundled sample data             |
-| Hybrid search          | +1     | [`search.HybridSearcher`](search.py) (RRF)                                                           |
-| Re-ranking             | +1     | [`search.RerankedSearcher`](search.py) (cross-encoder)                                               |
-| Query rewriting        | +1     | [`search.QueryRewriter`](search.py) + `RewritingSearcher`                                            |
 
 ---
 

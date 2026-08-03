@@ -2,7 +2,7 @@
   {
     "id": "2911040",
     "name": "Galapagos Albatrosses",
-    "taxon_ids": "Phoebastria irrorata",
+    "taxon_ids": "Phoebastria irrorata (waved albatross, seabird)",
     "principal_investigator_name": "Sebastian Cruz",
     "contact_person_name": "Sebastian Cruz",
     "main_location_lat": "-1.35",
@@ -20,7 +20,7 @@
   {
     "id": "10763606",
     "name": "Turkey Vulture Acopian Center USA GPS",
-    "taxon_ids": "Cathartes aura",
+    "taxon_ids": "Cathartes aura (turkey vulture, raptor)",
     "principal_investigator_name": "David Barber",
     "contact_person_name": "Keith Bildstein",
     "main_location_lat": "40.6",
@@ -38,7 +38,7 @@
   {
     "id": "10917211",
     "name": "MPIAB white stork lifetime tracking",
-    "taxon_ids": "Ciconia ciconia",
+    "taxon_ids": "Ciconia ciconia (white stork, wading bird)",
     "principal_investigator_name": "Andrea Flack",
     "contact_person_name": "Andrea Flack",
     "main_location_lat": "48.4",
@@ -56,7 +56,7 @@
   {
     "id": "10800345",
     "name": "African Elephant Movements Kruger",
-    "taxon_ids": "Loxodonta africana",
+    "taxon_ids": "Loxodonta africana (African elephant, land mammal)",
     "principal_investigator_name": "Rob Slotow",
     "contact_person_name": "Rob Slotow",
     "main_location_lat": "-23.99",
@@ -74,7 +74,7 @@
   {
     "id": "8863543",
     "name": "Serengeti Lion Project GPS",
-    "taxon_ids": "Panthera leo",
+    "taxon_ids": "Panthera leo (African lion, big cat)",
     "principal_investigator_name": "Craig Packer",
     "contact_person_name": "Craig Packer",
     "main_location_lat": "-2.33",
@@ -92,7 +92,7 @@
   {
     "id": "1275192",
     "name": "Yellowstone Wolves",
-    "taxon_ids": "Canis lupus",
+    "taxon_ids": "Canis lupus (gray wolf, land mammal)",
     "principal_investigator_name": "Douglas Smith",
     "contact_person_name": "Kira Cassidy",
     "main_location_lat": "44.6",
@@ -110,7 +110,7 @@
   {
     "id": "1176026",
     "name": "Adelie Penguins on the move",
-    "taxon_ids": "Pygoscelis adeliae",
+    "taxon_ids": "Pygoscelis adeliae (Adelie penguin, seabird)",
     "principal_investigator_name": "Yan Ropert-Coudert",
     "contact_person_name": "Yan Ropert-Coudert",
     "main_location_lat": "-66.66",
@@ -128,7 +128,7 @@
   {
     "id": "9531538",
     "name": "Blackpoll Warbler autumn migration",
-    "taxon_ids": "Setophaga striata",
+    "taxon_ids": "Setophaga striata (Blackpoll warbler, songbird)",
     "principal_investigator_name": "Ryan Norris",
     "contact_person_name": "Ryan Norris",
     "main_location_lat": "44.5",
@@ -146,7 +146,7 @@
   {
     "id": "1259688",
     "name": "White Shark GPS Guadalupe",
-    "taxon_ids": "Carcharodon carcharias",
+    "taxon_ids": "Carcharodon carcharias (great white shark, marine fish)",
     "principal_investigator_name": "Michael Domeier",
     "contact_person_name": "Michael Domeier",
     "main_location_lat": "29.15",
@@ -164,7 +164,7 @@
   {
     "id": "9493874",
     "name": "European Roller migration ICARUS",
-    "taxon_ids": "Coracias garrulus",
+    "taxon_ids": "Coracias garrulus (European roller, songbird)",
     "principal_investigator_name": "Kamran Safi",
     "contact_person_name": "Kamran Safi",
     "main_location_lat": "41.9",
@@ -182,7 +182,7 @@
   {
     "id": "9776859",
     "name": "Loggerhead Sea Turtle Mediterranean",
-    "taxon_ids": "Caretta caretta",
+    "taxon_ids": "Caretta caretta (loggerhead sea turtle, marine reptile)",
     "principal_investigator_name": "Paolo Casale",
     "contact_person_name": "Paolo Casale",
     "main_location_lat": "35.5",
@@ -200,7 +200,7 @@
   {
     "id": "8801221",
     "name": "Caribou Migration Yukon",
-    "taxon_ids": "Rangifer tarandus",
+    "taxon_ids": "Rangifer tarandus (caribou, land mammal)",
     "principal_investigator_name": "Kyle Joly",
     "contact_person_name": "Kyle Joly",
     "main_location_lat": "64.0",
