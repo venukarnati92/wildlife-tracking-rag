@@ -286,7 +286,6 @@ wildlife-tracking-rag/
 
 ## Makefile reference
 
-All commands run on your host via `uv` (no Docker required, except where noted). This is also the fastest way to run things locally without Docker Compose — e.g. `make install && make bootstrap && make app` gets you a working chat UI in three commands (Postgres is only needed for `db-init`/`app`/`dashboard`'s conversation logging, see below).
 
 | Target             | What it does                                                                                          |
 | ---                | ---                                                                                                    |
