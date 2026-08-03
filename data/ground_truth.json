@@ -1,0 +1,43 @@
+[
+  {"question": "Which studies track turkey vultures?", "study_id": "10763606"},
+  {"question": "Any research on Cathartes aura migration in the Americas?", "study_id": "10763606"},
+  {"question": "Who is David Barber tracking?", "study_id": "10763606"},
+
+  {"question": "Which studies track Galapagos albatrosses?", "study_id": "2911040"},
+  {"question": "How are waved albatrosses foraging trips studied?", "study_id": "2911040"},
+  {"question": "GPS tracking of Phoebastria irrorata", "study_id": "2911040"},
+
+  {"question": "Study on white stork migration by Andrea Flack", "study_id": "10917211"},
+  {"question": "Which studies track Ciconia ciconia lifetime movement?", "study_id": "10917211"},
+  {"question": "Group migration decision-making in storks", "study_id": "10917211"},
+
+  {"question": "African elephant tracking in Kruger", "study_id": "10800345"},
+  {"question": "Studies on Loxodonta africana movement corridors", "study_id": "10800345"},
+  {"question": "Who leads elephant GPS tracking in South Africa?", "study_id": "10800345"},
+
+  {"question": "Serengeti lion GPS project", "study_id": "8863543"},
+  {"question": "Panthera leo pride movement Africa", "study_id": "8863543"},
+  {"question": "Craig Packer lion research telemetry", "study_id": "8863543"},
+
+  {"question": "Yellowstone wolves telemetry", "study_id": "1275192"},
+  {"question": "Long-term Canis lupus GPS VHF monitoring", "study_id": "1275192"},
+  {"question": "Which studies track gray wolves in the northern Rockies?", "study_id": "1275192"},
+
+  {"question": "Adelie penguins tracking Antarctica", "study_id": "1176026"},
+  {"question": "Pygoscelis adeliae foraging trips Dumont d'Urville", "study_id": "1176026"},
+
+  {"question": "Blackpoll warbler transoceanic migration", "study_id": "9531538"},
+  {"question": "Setophaga striata geolocator study", "study_id": "9531538"},
+
+  {"question": "Great white shark satellite tracking Guadalupe", "study_id": "1259688"},
+  {"question": "Carcharodon carcharias Pacific tagging", "study_id": "1259688"},
+
+  {"question": "European roller ICARUS migration study", "study_id": "9493874"},
+  {"question": "Full annual cycle tracking of Coracias garrulus", "study_id": "9493874"},
+
+  {"question": "Loggerhead sea turtle Mediterranean tracking", "study_id": "9776859"},
+  {"question": "Caretta caretta ARGOS satellite study", "study_id": "9776859"},
+
+  {"question": "Caribou migration Yukon Alaska", "study_id": "8801221"},
+  {"question": "Rangifer tarandus longest terrestrial migration", "study_id": "8801221"}
+]

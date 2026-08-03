@@ -1,0 +1,80 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-wildlife_rag}
+      POSTGRES_USER: ${POSTGRES_USER:-wildlife}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wildlife}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wildlife} -d ${POSTGRES_DB:-wildlife_rag}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-wildlife_rag}
+      POSTGRES_USER: ${POSTGRES_USER:-wildlife}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wildlife}
+    command: ["uv", "run", "python", "db_init.py"]
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-wildlife_rag}
+      POSTGRES_USER: ${POSTGRES_USER:-wildlife}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wildlife}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_EXTRA_HEADERS: ${OPENAI_EXTRA_HEADERS:-}
+      OPENAI_PCA_FEATURE_KEY: ${OPENAI_PCA_FEATURE_KEY:-}
+      INDEX_PATH: ${INDEX_PATH:-data/index/wildlife_index.pkl}
+      EMBEDDINGS_PATH: ${EMBEDDINGS_PATH:-data/index/wildlife_embeddings.npy}
+      DOCUMENTS_PATH: ${DOCUMENTS_PATH:-data/index/wildlife_documents.json}
+      EMBED_MODEL: ${EMBED_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+    command: ["uv", "run", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-wildlife_rag}
+      POSTGRES_USER: ${POSTGRES_USER:-wildlife}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wildlife}
+    ports:
+      - "8502:8502"
+    command: ["uv", "run", "streamlit", "run", "dashboard.py", "--server.port=8502", "--server.address=0.0.0.0"]
+
+volumes:
+  postgres_data:
