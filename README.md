@@ -20,12 +20,13 @@ The assistant retrieves relevant Movebank studies from an indexed knowledge base
 - [Architecture](#architecture)
 - [Quick start (Docker Compose)](#quick-start-docker-compose)
 - [Screenshots](#screenshots)
-- [Local setup (without Docker)](#local-setup-without-docker)
-- [Ingestion pipeline (dlt)](#ingestion-pipeline-dlt)
-- [Retrieval strategies](#retrieval-strategies)
-- [Evaluation](#evaluation)
-- [Monitoring dashboard](#monitoring-dashboard)
+- [How it works](#how-it-works)
+  - [Ingestion pipeline (dlt)](#ingestion-pipeline-dlt)
+  - [Retrieval strategies](#retrieval-strategies)
+  - [Evaluation](#evaluation)
+  - [Monitoring dashboard](#monitoring-dashboard)
 - [Repo layout](#repo-layout)
+- [Makefile reference](#makefile-reference)
 
 ---
 
@@ -81,13 +82,13 @@ Everything (Postgres, Streamlit app, monitoring dashboard) comes up with one com
 
 ```bash
 cp .env.example .env
-# edit .env and set OPENAI_API_KEY (or point OPENAI_BASE_URL at Ollama / another gateway)
+# edit .env and set OPENAI_API_KEY (or point OPENAI_BASE_URL)
 ```
 
 **Optional: Movebank credentials (live data).** Sign up for a free account at [movebank.org](https://www.movebank.org/cms/movebank-registration) and add your credentials to `.env`:
 
 ```bash
-MOVEBANK_USERNAME=your_email
+MOVEBANK_USERNAME=your_username
 MOVEBANK_PASSWORD=your_password
 ```
 
@@ -143,37 +144,11 @@ make compose-down  # docker compose down -v
 
 ---
 
-## Local setup (without Docker)
+## How it works
 
-```bash
-# 1. Python + deps (uv is required)
-uv sync
+The next four sections walk through the pipeline end to end: how studies get ingested and indexed, how a question is answered at retrieval time, how quality is measured, and how production usage is monitored.
 
-# 2. Environment
-cp .env.example .env
-# set OPENAI_API_KEY (or OPENAI_BASE_URL for a compatible provider)
-
-# 3. Data + index (bundled sample)
-make bootstrap        # copies sample -> data/movebank_studies.json + builds indexes
-
-# 4. Postgres (via docker) + tables
-docker compose up -d postgres
-uv run python db_init.py
-
-# 5. Run
-uv run streamlit run app.py --server.port 8501       # chat UI
-uv run streamlit run dashboard.py --server.port 8502 # monitoring
-```
-
-CLI quick test (no UI):
-
-```bash
-uv run python assistant.py "Which studies track Yellowstone wolves?"
-```
-
----
-
-## Ingestion pipeline (dlt)
+### Ingestion pipeline (dlt)
 
 Two-step, automated:
 
@@ -196,9 +171,7 @@ make pipeline    # dlt -> DuckDB
 make index       # build search + embeddings artifacts
 ```
 
----
-
-## Retrieval strategies
+### Retrieval strategies
 
 Implemented in [`search.py`](search.py) and selectable at runtime via the app sidebar or `RAG_STRATEGY` env var:
 
@@ -212,11 +185,9 @@ Implemented in [`search.py`](search.py) and selectable at runtime via the app si
 
 `create_assistant()` (used by the CLI and the `RAG_STRATEGY` env var) defaults to `hybrid_rerank_rewrite` — the highest-accuracy option per the [retrieval evaluation](#evaluation) below. The Streamlit app's sidebar dropdown defaults to the lighter-weight `hybrid` instead (no rerank/rewrite, so no cross-encoder model to load and no extra LLM call), and lets you switch to `hybrid_rerank_rewrite` ("best") at any time.
 
----
+### Evaluation
 
-## Evaluation
-
-### Retrieval evaluation (all strategies)
+#### Retrieval evaluation (all strategies)
 
 Ground truth is [`data/ground_truth.json`](data/ground_truth.json) (30 human-written questions, each with the gold Movebank `study_id`). Run:
 
@@ -235,7 +206,7 @@ Results committed at [`data/retrieval_eval.csv`](data/retrieval_eval.csv):
 
 `hybrid_rerank_rewrite` also runs when `OPENAI_API_KEY` is set; on this corpus it matches `hybrid_rerank` at MRR 1.0 while adding query normalization for common → scientific names, which is where it shines on paraphrased user queries.
 
-### LLM evaluation (multiple prompts)
+#### LLM evaluation (multiple prompts)
 
 Notebook: [`notebooks/03-llm-eval.ipynb`](notebooks/03-llm-eval.ipynb).
 
@@ -246,13 +217,11 @@ Compares two prompt variants on the same retrieval backend:
 
 Each answer is graded by [`judge.py`](judge.py) (LLM-as-judge) as `RELEVANT` / `PARTLY_RELEVANT` / `NON_RELEVANT`. The winning prompt is wired into `rag_helper.INSTRUCTIONS` for the app.
 
-### Ground-truth generation
+#### Ground-truth generation
 
 [`notebooks/01-ground-truth.ipynb`](notebooks/01-ground-truth.ipynb) uses the LLM to expand every study into 5 synthetic questions. The committed [`data/ground_truth.json`](data/ground_truth.json) is a hand-curated version of the same idea, so the retrieval eval is reproducible **without an OpenAI key**.
 
----
-
-## Monitoring dashboard
+### Monitoring dashboard
 
 Every RAG call is written to Postgres by [`db_save.py`](db_save.py). The LLM judge verdict and user thumbs (from the app) go to a linked `feedback` table via [`db_feedback.py`](db_feedback.py).
 
@@ -311,6 +280,35 @@ wildlife-tracking-rag/
 ├── Makefile                           # bootstrap / download / pipeline / index / app / dashboard
 ├── pyproject.toml                     # pinned deps, python >=3.12
 └── .env.example
+```
+
+---
+
+## Makefile reference
+
+All commands run on your host via `uv` (no Docker required, except where noted). This is also the fastest way to run things locally without Docker Compose — e.g. `make install && make bootstrap && make app` gets you a working chat UI in three commands (Postgres is only needed for `db-init`/`app`/`dashboard`'s conversation logging, see below).
+
+| Target             | What it does                                                                                          |
+| ---                | ---                                                                                                    |
+| `make install`     | `uv sync` — installs all dependencies into `.venv`                                                     |
+| `make download`     | Fetches up to 3000 live studies from the Movebank REST API into `data/raw/` (needs `MOVEBANK_USERNAME`/`PASSWORD` in `.env`, or falls back to the bundled sample) |
+| `make pipeline`     | Runs the `dlt` pipeline, loading `data/raw/*.csv` into `data/movebank_pipeline.duckdb`                |
+| `make index`        | Runs `ingest.py` — builds the text index, embeddings, and documents JSON under `data/index/`          |
+| `make sample-data`  | Copies the bundled `data/movebank_studies.sample.json` to `data/movebank_studies.json` (no credentials needed) |
+| `make bootstrap`    | `sample-data` + `index` — the quickest way to get a working knowledge base with zero setup             |
+| `make db-init`      | Creates the Postgres schema (`db_init.py`). Requires Postgres already running and reachable via `POSTGRES_HOST`/`PORT` — e.g. `docker compose up -d postgres` |
+| `make app`          | Runs the Streamlit chat UI locally on port 8501                                                        |
+| `make dashboard`    | Runs the Streamlit monitoring dashboard locally on port 8502                                           |
+| `make generate`     | Seeds the dashboard with sample RAG conversations (`generate_data.py`), run locally                    |
+| `make compose-up`   | `docker compose up --build` — brings up Postgres + `db-init` + `app` + `dashboard` in containers       |
+| `make compose-down` | `docker compose down -v` — tears down containers and volumes                                           |
+| `make compose-generate` | Same as `make generate`, but run inside the `app` container via `docker compose run`               |
+| `make clean`        | Removes `data/index/`, `data/raw/`, the DuckDB file, and `data/movebank_studies.json`                  |
+
+CLI quick test (no UI, no Postgres needed):
+
+```bash
+uv run python assistant.py "Which studies track Yellowstone wolves?"
 ```
 
 ---
