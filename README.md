@@ -45,7 +45,7 @@ The knowledge base is study metadata, **not** raw GPS fixes (which are billions 
 
 ## Evaluation criteria mapping
 
-For reviewers grading against a rubric — each criterion and where to find it in this repo:
+Each criterion and where to find it in this repo:
 
 | Criterion | Where to look |
 | --- | --- |
