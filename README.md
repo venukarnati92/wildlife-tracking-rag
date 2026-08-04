@@ -17,8 +17,11 @@ The assistant retrieves relevant Movebank studies from an indexed knowledge base
 ## Contents
 
 - [Problem statement](#problem-statement)
+- [Evaluation criteria mapping](#evaluation-criteria-mapping)
 - [Architecture](#architecture)
 - [Quick start (Docker Compose)](#quick-start-docker-compose)
+- [Environment variables](#environment-variables)
+- [Example usage](#example-usage)
 - [Screenshots](#screenshots)
 - [How it works](#how-it-works)
   - [Ingestion pipeline (dlt)](#ingestion-pipeline-dlt)
@@ -37,6 +40,25 @@ Movebank is the largest open repository of animal tracking data (GPS, accelerome
 Discovering the *right* study for a research question is hard: the metadata is spread across thousands of studies. This project builds a RAG assistant over the study metadata so a biologist, journalist, or student can ask natural-language questions and get grounded answers with study IDs and citations.
 
 The knowledge base is study metadata, **not** raw GPS fixes (which are billions of rows and rarely helpful as unstructured context). Each Movebank study is represented as one searchable document containing name, taxa, PI, contact, location, time period, animal/tag counts, sensors, objective, citation, license, and acknowledgements.
+
+---
+
+## Evaluation criteria mapping
+
+For reviewers grading against a rubric — each criterion and where to find it in this repo:
+
+| Criterion | Where to look |
+| --- | --- |
+| Problem description | [Problem statement](#problem-statement) |
+| Retrieval flow (knowledge base + LLM) | [Architecture](#architecture), [Retrieval strategies](#retrieval-strategies) |
+| Retrieval evaluation | [Evaluation → Retrieval evaluation](#evaluation) — 4 strategies compared in [`data/retrieval_eval.csv`](data/retrieval_eval.csv) |
+| LLM evaluation | [Evaluation → LLM evaluation](#evaluation) — 2 prompts compared via LLM-as-judge in [`notebooks/03-llm-eval.ipynb`](notebooks/03-llm-eval.ipynb) |
+| Interface | [Screenshots](#screenshots) — Streamlit app (`app.py`) + CLI (`assistant.py`) |
+| Ingestion pipeline | [Ingestion pipeline (dlt)](#ingestion-pipeline-dlt) — automated via `dlt` |
+| Monitoring | [Monitoring dashboard](#monitoring-dashboard) — user feedback + 6-chart dashboard |
+| Containerization | [Quick start (Docker Compose)](#quick-start-docker-compose) — everything in [`docker-compose.yaml`](docker-compose.yaml) |
+| Reproducibility | [Quick start](#quick-start-docker-compose), [Environment variables](#environment-variables), [Makefile reference](#makefile-reference) |
+| Best practices (hybrid search, reranking, query rewriting) | [Retrieval strategies](#retrieval-strategies) — all three implemented in [`search.py`](search.py) |
 
 ---
 
@@ -129,6 +151,53 @@ Tear down:
 ```bash
 make compose-down  # docker compose down -v
 ```
+
+---
+
+## Environment variables
+
+All configuration lives in `.env` (copy from [`.env.example`](.env.example)). Nothing here is required beyond `OPENAI_API_KEY` (or `OPENAI_BASE_URL` for a compatible provider) — everything else has a sane default.
+
+| Variable | Default | Required? | Purpose |
+| --- | --- | --- | --- |
+| `OPENAI_API_KEY` | — | Yes, unless using a custom `OPENAI_BASE_URL` that doesn't need one | API key for the LLM (chat completions + query rewriting) |
+| `OPENAI_MODEL` | `gpt-4o-mini` | No | Chat model used for answers and query rewriting |
+| `OPENAI_BASE_URL` | OpenAI's default | No | Point at an OpenAI-compatible provider (Ollama, Groq, a corporate gateway, ...) |
+| `OPENAI_EXTRA_HEADERS` | — | No | JSON object of extra HTTP headers to send with every LLM request (corporate gateways) |
+| `RAG_STRATEGY` | `hybrid_rerank_rewrite` | No | Retrieval strategy used by the CLI (`assistant.py`) — see [Retrieval strategies](#retrieval-strategies) |
+| `MOVEBANK_USERNAME` / `MOVEBANK_PASSWORD` | — | No | Movebank credentials for `make download`; omit to use the bundled sample dataset instead |
+| `POSTGRES_HOST` / `POSTGRES_PORT` | `localhost` / `5432` | No | Where to reach Postgres (set automatically inside Docker Compose) |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | `wildlife_rag` / `wildlife` / `wildlife` | No | Postgres credentials for conversation/feedback logging |
+| `INDEX_PATH` / `EMBEDDINGS_PATH` / `DOCUMENTS_PATH` | `data/index/wildlife_index.pkl` / `wildlife_embeddings.npy` / `wildlife_documents.json` | No | Where `ingest.py` writes (and the app reads) the search index artifacts |
+| `EMBED_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | No | Sentence-transformers model used for both indexing and query embeddings |
+
+---
+
+## Example usage
+
+CLI:
+
+```bash
+uv run python assistant.py "Are there any studies on African elephant movement?"
+```
+
+```text
+Q: Are there any studies on African elephant movement?
+A: Yes, there is a study called "African Elephant Movements Kruger" (study 10800345).
+This study used GPS tags to track 14 African elephants (Loxodonta africana) in Kruger
+National Park between 2005 and 2012. The objective was to inform corridor and conflict
+management.
+```
+
+A couple more sample questions the app can answer out of the box (bundled sample dataset):
+
+| Question | Answer (summarized) |
+| --- | --- |
+| *Which studies track turkey vultures?* | "Turkey Vulture Acopian Center USA GPS" (study 10763606) — 34 vultures GPS-tracked 2003–2020 across North/South America. |
+| *What sensors are used to track Galapagos albatrosses?* | GPS — from the "Galapagos Albatrosses" study (study 2911040). |
+| *Who are the principal investigators for GPS-tracked seabird studies?* | Sebastian Cruz (albatrosses) and Yan Ropert-Coudert (Adelie penguins). |
+
+If the corpus doesn't cover a question, the assistant explicitly says `"I don't know..."` instead of guessing — see the [chat UI screenshot](#screenshots) below for the full response format (answer + latency/token/cost + retrieved context + judge verdict).
 
 ---
 
@@ -285,7 +354,6 @@ wildlife-tracking-rag/
 ---
 
 ## Makefile reference
-
 
 | Target             | What it does                                                                                          |
 | ---                | ---                                                                                                    |
